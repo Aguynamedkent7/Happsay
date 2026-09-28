@@ -1,22 +1,23 @@
 import React from 'react';
 import { Bounce, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useTheme } from '@/lib/theme';
 
 const Toast: React.FC = () => {
+  const theme = useTheme();
+
   return (
-    <div className="App">
-      <ToastContainer 
-        position="top-center"
-        autoClose={2000}
-        hideProgressBar={true}
-        closeOnClick={true}
-        closeButton={false}
-        draggable={false}
-        pauseOnHover={true}
-        theme="light"
-        transition={Bounce}
-      />
-    </div>
+    <ToastContainer
+      position="top-center"
+      autoClose={2000}
+      hideProgressBar={true}
+      closeOnClick={true}
+      closeButton={false}
+      draggable={false}
+      pauseOnHover={true}
+      theme={theme}
+      transition={Bounce}
+    />
   );
 };
 
