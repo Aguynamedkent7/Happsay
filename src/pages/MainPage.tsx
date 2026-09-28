@@ -1,35 +1,38 @@
 import { useState } from "react";
-import { INotesState, ITodoQuery } from "@/interfaces/interfaces";
+import { useLocation } from "react-router-dom";
+import { Plus } from "lucide-react";
+import { ITodoQuery } from "@/interfaces/interfaces";
 import { useFetchTodos } from "@/hooks/tanstack/notes/useQueryNote";
-import "@/styles/MainPage.css";
-import "@/styles/NotePopup.css";
-import "@/styles/ProfilePopup.css";
-import { Link, useNavigate } from "react-router-dom";
 import useMutationNote from "@/hooks/tanstack/notes/useMutationNote";
 import Toast from "@/components/ui/ToastContainer";
 import { toast } from "react-toastify";
-import { useLogout } from "@/services/auth/authApi";
-import { useGetUser } from "@/hooks/tanstack/getuser/useQueryGetUser";
 import showToast from "@/components/ui/showToast";
-
-const tabs = ["ToDo", "Done", "Archive"];
+import { cn } from "@/lib/utils";
+import { localDateString } from "@/lib/date";
+import { TABS, type TabKey } from "@/lib/tabs";
+import AppShell from "@/components/AppShell";
+import { Dialog, DialogHeader } from "@/components/ui/Dialog";
+import AddTaskForm from "@/components/tasks/AddTaskForm";
+import TaskCard from "@/components/tasks/TaskCard";
+import TaskDialog from "@/components/tasks/TaskDialog";
+import ConfirmDialog from "@/components/tasks/ConfirmDialog";
+import TasksHeader from "@/components/tasks/TasksHeader";
 
 export default function MainPage() {
-  const [selectedTab, setSelectedTab] = useState("ToDo");
+  const location = useLocation();
+  const [selectedTab, setSelectedTab] = useState<TabKey>(
+    (location.state as { tab?: TabKey } | null)?.tab ?? "ToDo",
+  );
   const [noteTitle, setNoteTitle] = useState("");
   const [noteContent, setNoteContent] = useState("");
   const [selectedNote, setSelectedNote] = useState<ITodoQuery | null>(null);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [noteDeadline, setNoteDeadline] = useState("");
   const [noteToDelete, setNoteToDelete] = useState<ITodoQuery | null>(null);
   const [noteToArchive, setNoteToArchive] = useState<ITodoQuery | null>(null);
-  const navigate = useNavigate();
+  const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
 
-  const userId = Number(localStorage.getItem("userId"));
   const { data: notes } = useFetchTodos();
-  const { data: user } = useGetUser(userId);
 
-  // ✅ Mutations for notes
   const { useMutationUpdateNoteTitle } = useMutationNote();
   const { mutate: updateNoteTitle } = useMutationUpdateNoteTitle();
 
@@ -65,6 +68,7 @@ export default function MainPage() {
     setNoteTitle("");
     setNoteContent("");
     setNoteDeadline("");
+    setIsAddSheetOpen(false);
   };
 
   const handleSaveChanges = async () => {
@@ -81,7 +85,6 @@ export default function MainPage() {
     }
   };
 
-  // ✅ Delete Note
   const handleDeleteNote = async (id: number) => {
     deleteNote(id);
   };
@@ -98,7 +101,6 @@ export default function MainPage() {
     setNoteToDelete(null); // Close the delete confirmation popup
   };
 
-  // ✅ Toggle Completion
   const handleToggleComplete = (id: number, is_done: boolean) => {
     toggleComplete({ id, is_done });
 
@@ -108,7 +110,6 @@ export default function MainPage() {
     }
   };
 
-  // ✅ Toggle Archive
   const handleToggleArchive = async (id: number, is_archived: boolean) => {
     toggleArchive({ id, is_archived });
     setSelectedNote(null);
@@ -125,196 +126,162 @@ export default function MainPage() {
     setNoteToArchive(null); // Close the archive confirmation popup
   };
 
-
   const handleDeadlineChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedDate = e.target.value;
-    const today = new Date().toISOString().split("T")[0];
-  
+    const today = localDateString();
+
     if (selectedDate < today) {
       showToast("Can't set a past date as a deadline", "error");
       return; // Prevents updating the state
     }
-  
+
     setNoteDeadline(selectedDate);
   };
 
-  
   const handlePopupNoteDeadlineChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedDate = e.target.value;
-    const today = new Date().toISOString().split("T")[0];
+    const today = localDateString();
 
     if (selectedDate < today) {
       showToast("Can't set a past date as deadline", "error");
       setSelectedNote((prev) => (prev ? { ...prev, deadline: today } : prev));
-       // Reset to today's date or keep the last valid date
+      // Reset to today's date or keep the last valid date
     } else if (selectedNote) {
       setSelectedNote((prev) => (prev ? { ...prev, deadline: selectedDate } : prev));
     }
   };
 
   const isPastDue = (deadline: string) => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = localDateString();
     return deadline < today;
   };
 
-  return (
-    <div className="container">
-      <header className="header">
-        <h1>Happsay!</h1>
-        <button className="profile-pic" onClick={() => setIsProfileOpen((prev) => !prev)}>
-          {user?.username}
-        </button>
-      </header>
+  const selectTab = (tab: TabKey) => {
+    setSelectedTab(tab);
+    setSelectedNote(null);
+  };
 
-      {/* Profile Popup */}
-      {isProfileOpen && (
-        <div className="profile-popup">
-          <div className="profile-popup-content">
-            <div className="profile-options">
-              <Link to="/settings" className="option">⚙️ Settings</Link>
-              <button onClick={() => useLogout(navigate)} className="option">🚪 Log Out</button>
-            </div>
-          </div>
+  const today = localDateString();
+  const tab = TABS.find((t) => t.key === selectedTab) ?? TABS[0];
+  const list = (notes?.[selectedTab] ?? []).slice().sort((a, b) => a.id - b.id);
+  const overdue = (notes?.ToDo ?? []).filter((n) => isPastDue(n.deadline)).length;
+  const summary =
+    selectedTab === "ToDo"
+      ? `${list.length} open${overdue ? ` · ${overdue} overdue` : ""}`
+      : selectedTab === "Done"
+        ? `${list.length} completed`
+        : `${list.length} archived`;
+  const emptyMessage =
+    selectedTab === "Done"
+      ? "No completed tasks yet. Keep going!"
+      : selectedTab === "Archive"
+        ? "No archived notes. Archive a note to store it here."
+        : "It's quiet around here... Start planning your life now!";
+  const EmptyIcon = tab.emptyIcon;
+
+  const addFormProps = {
+    title: noteTitle,
+    content: noteContent,
+    deadline: noteDeadline,
+    minDate: today,
+    onTitleChange: setNoteTitle,
+    onContentChange: setNoteContent,
+    onDeadlineChange: handleDeadlineChange,
+    onSubmit: handleAddNote,
+  };
+
+  return (
+    <AppShell page="tasks" activeTab={selectedTab} onSelectTab={selectTab}>
+      <TasksHeader
+        title={tab.label}
+        summary={summary}
+        notes={notes}
+        selectedTab={selectedTab}
+        onSelectTab={selectTab}
+      />
+
+      {selectedTab === "ToDo" && <AddTaskForm layout="inline" className="hidden md:flex" {...addFormProps} />}
+
+      {list.length === 0 ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16 text-center">
+          <EmptyIcon size={48} strokeWidth={1.75} className="text-input-border" aria-hidden="true" />
+          <p className="max-w-xs text-base text-muted">{emptyMessage}</p>
+        </div>
+      ) : (
+        <div
+          className={cn(
+            "grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-5 min-[1100px]:grid-cols-3",
+            selectedTab === "ToDo" && "pb-24 md:pb-0",
+          )}
+        >
+          {list.map((note) => (
+            <TaskCard
+              key={note.id}
+              note={note}
+              showCheckbox={selectedTab !== "Archive"}
+              onToggle={() => handleToggleComplete(note.id, note.is_done)}
+              onOpen={() => setSelectedNote(note)}
+            />
+          ))}
         </div>
       )}
 
-      <div className="main-layout">
-        <aside className="sidebar fixed-sidebar">
-          <nav>
-            {tabs.map((tab) => (
-              <div key={tab} className={`tab ${selectedTab === tab ? "active" : ""}`} onClick={() => { setSelectedTab(tab); setSelectedNote(null); }}>
-                {tab}
-              </div>
-            ))}
-          </nav>
-        </aside>
+      {selectedTab === "ToDo" && (
+        <button
+          type="button"
+          onClick={() => setIsAddSheetOpen(true)}
+          aria-label="Add task"
+          className="fixed right-4 bottom-[calc(24px+env(safe-area-inset-bottom))] z-20 flex size-[60px] items-center justify-center rounded-[20px] bg-primary text-on-primary shadow-fab md:hidden"
+        >
+          <Plus size={26} strokeWidth={2.25} />
+        </button>
+      )}
 
-        <main className="content">
-          {/* Note Input */}
-          {selectedTab === "ToDo" && (
-            <div className="note-input">
-              <input type="text" value={noteTitle} onChange={(e) => setNoteTitle(e.target.value)} placeholder="Enter title..." />
-              <input type="text" value={noteContent} onChange={(e) => setNoteContent(e.target.value)} placeholder="Add a Task..." />
-              <div className="input-group">
-                <label htmlFor="noteDeadline">Select deadline:</label>
-                <input id="noteDeadline" type="date" value={noteDeadline} onChange={handleDeadlineChange} min={new Date().toISOString().split("T")[0]} /></div>
-              <button onClick={handleAddNote} className="add">Add</button>
-            </div>
-          )}
+      {isAddSheetOpen && (
+        <Dialog onClose={() => setIsAddSheetOpen(false)} labelledBy="new-task-title" variant="responsive">
+          <DialogHeader id="new-task-title" title="New task" onClose={() => setIsAddSheetOpen(false)} />
+          <AddTaskForm layout="sheet" {...addFormProps} />
+        </Dialog>
+      )}
 
-          {/* Notes List */}
-          <div className="notes-container">
-            {!notes || notes[selectedTab as keyof INotesState]?.length === 0 ? (
-              <p className="empty-message">
-                {selectedTab === "Done"
-                  ? "No completed tasks yet. Keep going!"
-                  : selectedTab === "Archive"
-                  ? "No archived notes. Archive a note to store it here."
-                  : "It's quiet around here... Start planning your life now!"}
-              </p>
-            ) : (
-              notes[selectedTab as keyof INotesState]
-                ?.slice() // Prevent modifying the original array
-                .sort((a, b) => a.id - b.id) // Sort notes by ID to keep a consistent order
-                .map((note) => (
-                  <div key={note.id} className="note-card">
-                    {selectedTab !== "Archive" && (
-                      <input
-                        type="checkbox"
-                        checked={note.is_done}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          handleToggleComplete(note.id, note.is_done);
-                        }}
-                        className="note-checkbox"
-                      />
-                    )}
-                    <div className="note-info" onClick={() => setSelectedNote(note)}>
-                      <strong className="note-title">{note.title}</strong>
-                      <p className="note-preview">{note.content.slice(0, 30)}...</p>
-                      <div className="note-deadline" style={{ color: isPastDue(note.deadline) ? 'red' : 'inherit' }}>
-                        <strong>Deadline:</strong> {note.deadline ? note.deadline : "No deadline"}
-                      </div>
-                    </div>
-                  </div>
-                ))
-            )}
-          </div>
-        </main>
-      </div>
-
-      {/* Note Popup */}
       {selectedNote && (
-        <div className="note-popup">
-          <div className="note-popup-content">
-            <div className="popup-header">
-              <input
-                type="text"
-                value={selectedNote.title}
-                onChange={(e) => {
-                  if (!selectedNote) return;
-                  setSelectedNote((prev) => (prev ? { ...prev, title: e.target.value } : prev));
-                }}
-                className="note-title"
-              />
-              <button className="close-btn" onClick={() => setSelectedNote(null)}>✖</button>
-            </div>
-
-            <textarea
-              value={selectedNote.content}
-              onChange={(e) => {
-                if (!selectedNote) return;
-                setSelectedNote((prev) => (prev ? { ...prev, content: e.target.value } : prev));
-              }}
-            />
-            <div>
-              <p className="deadtitle"> Deadline </p>
-              {/* Deadline Input */}
-              <input
-                type="date"
-                value={selectedNote.deadline || ""}
-                onChange={handlePopupNoteDeadlineChange}
-                min={new Date().toISOString().split("T")[0]}
-                className="note-deadlinepopup"
-              />
-            </div>
-
-            <div className="popup-footer">
-              <button className="delete-btn" onClick={() => confirmDeleteNote(selectedNote!)}>Delete</button>
-              <button 
-                className="archive-btn" 
-                onClick={() => {
-                  return !selectedNote.is_archived ?
-                    confirmArchiveNote(selectedNote!) :
-                    handleToggleArchive(selectedNote.id, selectedNote.is_archived);
-                }}
-              >
-                {selectedTab === "Archive" ? "Unarchive" : "Archive"}
-              </button>
-              <button className="save-btn" onClick={handleSaveChanges}>Save</button>
-              </div>
-          </div>
-        </div>
+        <TaskDialog
+          note={selectedNote}
+          archiveLabel={selectedTab === "Archive" ? "Unarchive" : "Archive"}
+          minDate={today}
+          onChange={(patch) => setSelectedNote((prev) => (prev ? { ...prev, ...patch } : prev))}
+          onDeadlineChange={handlePopupNoteDeadlineChange}
+          onClose={() => setSelectedNote(null)}
+          onSave={handleSaveChanges}
+          onDelete={() => confirmDeleteNote(selectedNote)}
+          onArchive={() =>
+            !selectedNote.is_archived
+              ? confirmArchiveNote(selectedNote)
+              : handleToggleArchive(selectedNote.id, selectedNote.is_archived)
+          }
+        />
       )}
       {noteToDelete && (
-        <div className="delete-popup">
-          <div className="popup-content">
-            <p>Are you sure you want to delete "{noteToDelete.title}"?</p>
-            <button className="confirm-btn" onClick={handleDeleteConfirmed}>Yes, Delete</button>
-            <button className="cancel-btn" onClick={() => setNoteToDelete(null)}>Cancel</button>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="Delete this task?"
+          body="This can't be undone."
+          confirmLabel="Yes, delete"
+          tone="danger"
+          onConfirm={handleDeleteConfirmed}
+          onCancel={() => setNoteToDelete(null)}
+        />
       )}
       {noteToArchive && (
-        <div className="delete-popup">
-          <div className="popup-content">
-            <p>Are you sure you want to archive "{noteToArchive.title}"?</p>
-            <button className="confirm-btn-archive" onClick={handleArchiveConfirmed}>Yes, Archive</button>
-            <button className="cancel-btn" onClick={() => setNoteToArchive(null)}>Cancel</button>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="Archive this task?"
+          body="You can find it later in Archive."
+          confirmLabel="Yes, archive"
+          tone="primary"
+          onConfirm={handleArchiveConfirmed}
+          onCancel={() => setNoteToArchive(null)}
+        />
       )}
       <Toast />
-    </div>
+    </AppShell>
   );
 }

@@ -1,50 +1,17 @@
 import React, { useState } from "react";
-import "@/styles/SignupPage.css";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
 import useMutationAuth from "@/hooks/tanstack/auth/useMutationAuth";
-import "react-toastify/dist/ReactToastify.css"; 
-import Toast from "@/components/ui/ToastContainer";
 import showToast from "@/components/ui/showToast";
+import AuthLayout from "@/components/AuthLayout";
+import { Button } from "@/components/ui/button";
+import { Field, PasswordField } from "@/components/ui/Field";
 
-const InputField: React.FC<{ 
-  type: string; 
-  name: string;  
-  placeholder: string; 
-  value: string; 
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  showPasswordToggle?: boolean;
-}> = ({ type, name, placeholder, value, onChange, showPasswordToggle = false }) => {
-  const [showPassword, setShowPassword] = useState(false);
-
-  return (
-    <div className="input-container">
-      <input
-        className="signup-input-field"
-        type={showPasswordToggle && showPassword ? "text" : type}
-        name={name}  
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-      />
-      {showPasswordToggle && (
-        <button 
-          type="button" 
-          className="toggle" 
-          onClick={() => setShowPassword((prev) => !prev)}
-        >
-          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-        </button>
-      )}
-    </div>
-  );
-};
-
+type SignupError = { response?: { data?: Record<string, unknown> } };
 
 const SignupPage: React.FC = () => {
   const navigate = useNavigate();
-  
-  const {useMutationSignup} = useMutationAuth();
+
+  const { useMutationSignup } = useMutationAuth();
   const { mutate: signup, isPending } = useMutationSignup();
 
   const [formData, setFormData] = useState({
@@ -54,8 +21,6 @@ const SignupPage: React.FC = () => {
     confirm_password: "",
   });
 
-
-
   // Handle form input change
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -63,78 +28,112 @@ const SignupPage: React.FC = () => {
   };
 
   const errorMessagesMap: Record<string, string> = {
-  username: "Username",
-  password: "Password",
-  email: "Email",
-  confirm_password: "Confirm Password", 
-};
+    username: "Username",
+    password: "Password",
+    email: "Email",
+    confirm_password: "Confirm Password",
+  };
 
-const handleSignup = (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleSignup = (e: React.FormEvent) => {
+    e.preventDefault();
 
-  const errors: string[] = [];
+    const errors: string[] = [];
 
-  // 🔹 Check for empty fields
-  Object.entries(formData).forEach(([key, value]) => {
-    if (!value) {
-      const friendlyKey = errorMessagesMap[key] || key;
-      errors.push(`${friendlyKey} is required.`);
-    }
-  });
-
-  // 🔹 Check for valid email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (formData.email && !emailRegex.test(formData.email)) {
-    errors.push("Email must be a valid email address.");
-  }
-
-  // 🔹 Check if passwords match
-  if (formData.password !== formData.confirm_password) {
-    errors.push(`Passwords do not match.`);
-  }
-
-  // ❌ Show all errors and stop form submission
-  if (errors.length > 0) {
-    errors.forEach((error) => showToast(error, "error")); // Now all errors show
-    return;
-  }
-
-  // ✅ Proceed with signup request
-  signup(formData, {
-    onSuccess: (response) => {
-      const msg_key = Object.keys(response.data)[0];
-      console.log(response.data[msg_key]);
-      setTimeout(() => navigate("/login"), 2000);
-    },
-    onError: (error: any) => {
-      Object.entries(error.response.data).forEach(([key, message]) => {
+    // Check for empty fields
+    Object.entries(formData).forEach(([key, value]) => {
+      if (!value) {
         const friendlyKey = errorMessagesMap[key] || key;
-        const errorMessage = Array.isArray(message) ? message.join(", ") : message;
-        console.log(`${friendlyKey}: ${errorMessage}`);
-      });
-    },
-  });
-};
+        errors.push(`${friendlyKey} is required.`);
+      }
+    });
+
+    // Check for valid email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (formData.email && !emailRegex.test(formData.email)) {
+      errors.push("Email must be a valid email address.");
+    }
+
+    // Check if passwords match
+    if (formData.password !== formData.confirm_password) {
+      errors.push(`Passwords do not match.`);
+    }
+
+    // Show all errors and stop form submission
+    if (errors.length > 0) {
+      errors.forEach((error) => showToast(error, "error"));
+      return;
+    }
+
+    // Proceed with signup request
+    signup(formData, {
+      onSuccess: (response) => {
+        const msg_key = Object.keys(response.data)[0];
+        console.log(response.data[msg_key]);
+        setTimeout(() => navigate("/login"), 2000);
+      },
+      onError: (error) => {
+        Object.entries((error as SignupError).response?.data ?? {}).forEach(([key, message]) => {
+          const friendlyKey = errorMessagesMap[key] || key;
+          const errorMessage = Array.isArray(message) ? message.join(", ") : message;
+          console.log(`${friendlyKey}: ${errorMessage}`);
+        });
+      },
+    });
+  };
 
   return (
-    <div className="signup-container">
-      <div className="signup-card">
-        <img src="/static/images/Happsay Logo.webp" alt="App Logo" className="logo" />
-        <h2 className="title">Happsay: Plan your life</h2>
-        <p className="start">Start creating planned lists today!</p>
-        <form onSubmit={handleSignup}>
-          <InputField type="text" name="email" placeholder="Email" value={formData.email} onChange={handleChange} />
-          <InputField type="text" name="username" placeholder="Username" value={formData.username} onChange={handleChange} />
-          <InputField type="password" name="password" placeholder="Password" value={formData.password} onChange={handleChange} showPasswordToggle />
-          <InputField type="password" name="confirm_password" placeholder="Confirm Password" value={formData.confirm_password} onChange={handleChange} showPasswordToggle />
-          <Link to="/login" className="tet">Already have an account?</Link>
-          <button type="submit" disabled={isPending}>
-            {isPending ? "Signing up..." : "Sign Up"}
-          </button>
-        </form>
-      </div>
-      <Toast />
-    </div>
+    <AuthLayout variant="signup" title="Create your account" subtitle="Start making planned lists today.">
+      <form onSubmit={handleSignup} noValidate className="flex flex-col gap-4 md:gap-5">
+        <Field
+          auth
+          id="signup-email"
+          name="email"
+          type="email"
+          label="Email"
+          autoComplete="email"
+          value={formData.email}
+          onChange={handleChange}
+        />
+        <Field
+          auth
+          id="signup-username"
+          name="username"
+          label="Username"
+          autoComplete="username"
+          value={formData.username}
+          onChange={handleChange}
+        />
+        <div className="grid gap-4 md:grid-cols-2 md:gap-3">
+          <PasswordField
+            auth
+            id="signup-password"
+            name="password"
+            label="Password"
+            autoComplete="new-password"
+            value={formData.password}
+            onChange={handleChange}
+          />
+          <PasswordField
+            auth
+            id="signup-confirm-password"
+            name="confirm_password"
+            label="Confirm password"
+            autoComplete="new-password"
+            value={formData.confirm_password}
+            onChange={handleChange}
+          />
+        </div>
+        <Button type="submit" size="lg" disabled={isPending} className="mt-2 w-full">
+          {isPending ? "Signing up..." : "Sign up"}
+        </Button>
+      </form>
+      <p className="text-center text-[15px] text-muted">
+        Already have an account?{" "}
+        <Link to="/login" className="font-bold text-primary hover:text-primary-hover">
+          Log in
+        </Link>
+      </p>
+    </AuthLayout>
   );
 };
 

@@ -1,10 +1,10 @@
 import { useState } from "react";
-import "@/styles/ForgotPass.css";
-import { Link } from "react-router-dom";
-import "react-toastify/dist/ReactToastify.css"; // Import styles
+import { Link, useNavigate } from "react-router-dom";
+import { ChevronLeft } from "lucide-react";
 import useMutationAuth from "@/hooks/tanstack/auth/useMutationAuth";
-import Toast from "@/components/ui/ToastContainer";
-import { useNavigate } from "react-router-dom";
+import AuthLayout from "@/components/AuthLayout";
+import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/Field";
 
 const ForgotPass = () => {
   const [email, setEmail] = useState("");
@@ -12,9 +12,9 @@ const ForgotPass = () => {
 
   const { useMutationForgetPasswordReset } = useMutationAuth();
   const { mutate: ForgotPass, isSuccess, isPending } = useMutationForgetPasswordReset();
-  
+
   const handleForgotPass = async (email: string) => {
-    ForgotPass(email, { 
+    ForgotPass(email, {
       onSuccess: () => {
         console.log("Password Reset Link sent!")
         setTimeout(() => navigate('/'), 3000)
@@ -23,38 +23,39 @@ const ForgotPass = () => {
   };
 
   return (
-    <div className="forget-password-container">
-      <div className="logo"></div>
-      <h2>Happsay: Plan your life</h2>
-
-      <div className="form-box">
-        <p className="enter">
-          Enter your account email to send a password reset request form.
-        </p>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleForgotPass(email);
-          }}
-        >
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <button type="submit" disabled={isSuccess || isPending}>
-            {isPending ? "Sending..." : isSuccess ? "Already Sent" : "Send Reset Request"}
-          </button>
-          
-          <Link to="/login" className="info">
-            Back to Login
-          </Link>
-        </form>
-        <Toast/>
-      </div>
-    </div>
+    <AuthLayout
+      title="Reset your password"
+      subtitle="Enter your account email and we'll send you a reset link."
+    >
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleForgotPass(email);
+        }}
+        className="flex flex-col gap-[18px] md:gap-5"
+      >
+        <Field
+          auth
+          id="forgot-email"
+          type="email"
+          label="Email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <Button type="submit" size="lg" disabled={isSuccess || isPending} className="mt-2 w-full">
+          {isPending ? "Sending…" : isSuccess ? "Link sent" : "Send reset link"}
+        </Button>
+      </form>
+      <Link
+        to="/login"
+        className="mx-auto flex h-11 items-center gap-1 text-[15px] font-bold text-primary hover:text-primary-hover"
+      >
+        <ChevronLeft size={18} aria-hidden="true" />
+        Back to log in
+      </Link>
+    </AuthLayout>
   );
 };
 

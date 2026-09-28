@@ -1,19 +1,16 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import "@/styles/ResetPass.css";
-import { FiEye, FiEyeOff } from "react-icons/fi";
 import useMutationAuth from "@/hooks/tanstack/auth/useMutationAuth";
-import "react-toastify/dist/ReactToastify.css"; // Import styles
-import Toast from "@/components/ui/ToastContainer";
 import showToast from "@/components/ui/showToast";
+import AuthLayout from "@/components/AuthLayout";
+import { Button } from "@/components/ui/button";
+import { PasswordField } from "@/components/ui/Field";
 
 const ResetPass = () => {
   const { token } = useParams();
   const navigate = useNavigate();
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Use the TanStack Query mutation
   const { useMutationResetPassword } = useMutationAuth();
@@ -26,7 +23,6 @@ const ResetPass = () => {
       showToast("Passwords do not match!", "pwnomatch");
       return;
     }
-
 
     if (!token) {
       showToast("Invalid reset password token!", "error");
@@ -44,49 +40,31 @@ const ResetPass = () => {
   };
 
   return (
-    <div className="reset-password-container">
-      <div className="logo"></div>
-      <h2>Happsay: Plan your life</h2>
-
-      <div className="form-box">
-        <h3>Forgotten Password Reset Request Form</h3>
-        <form onSubmit={handleSubmit}>
-          <div className="input-container">
-            <input
-              type={showNewPassword ? "text" : "password"}
-              placeholder="New Password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-            />
-            <span onClick={() => setShowNewPassword(!showNewPassword)}>
-              {showNewPassword ? <FiEyeOff /> : <FiEye />}
-            </span>
-          </div>
-
-          <div className="input-container">
-            <input
-              type={showConfirmPassword ? "text" : "password"}
-              placeholder="Confirm New Password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
-            <span onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
-              {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
-            </span>
-          </div>
-
-          
-
-          <button type="submit" >
-            Reset
-          </button>
-
-        </form>
-        <Toast/>
-      </div>
-    </div>
+    <AuthLayout title="Set a new password" subtitle="Enter it twice to confirm.">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-[18px] md:gap-5">
+        <PasswordField
+          auth
+          id="reset-password"
+          label="New password"
+          autoComplete="new-password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          required
+        />
+        <PasswordField
+          auth
+          id="reset-confirm-password"
+          label="Confirm new password"
+          autoComplete="new-password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          required
+        />
+        <Button type="submit" size="lg" className="mt-2 w-full">
+          Save password
+        </Button>
+      </form>
+    </AuthLayout>
   );
 };
 
