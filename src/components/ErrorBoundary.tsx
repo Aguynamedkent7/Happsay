@@ -29,11 +29,14 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ textAlign: "center", padding: "20px" }}>
-          <h1>Oops! Something went wrong.</h1>
-          <p>Try reloading the page.</p>
-          <button onClick={this.handleReload} style={{ padding: "10px 20px", fontSize: "16px" }}>
-            🔄 Reload
+        <div className="flex min-h-dvh flex-col items-center justify-center gap-3 p-6 text-center">
+          <h1 className="font-display text-3xl font-extrabold tracking-[-0.02em]">Oops! Something went wrong.</h1>
+          <p className="text-muted">Try reloading the page.</p>
+          <button
+            onClick={this.handleReload}
+            className="mt-2 h-11 rounded-xl bg-primary px-5 font-bold text-on-primary hover:bg-primary-hover"
+          >
+            Reload
           </button>
         </div>
       );

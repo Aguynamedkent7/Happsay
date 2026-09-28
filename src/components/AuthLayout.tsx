@@ -78,7 +78,7 @@ export default function AuthLayout({ variant = "login", title, subtitle, childre
       <section
         className={cn(
           "hp-shapes relative flex shrink-0 flex-col justify-between overflow-hidden rounded-b-[28px] bg-auth-panel",
-          "pt-4 pr-4 pl-6 md:h-auto md:w-[min(680px,47%)] md:rounded-none md:p-14",
+          "pt-4 pr-4 pl-6 md:h-auto md:w-[min(680px,47.25%)] md:rounded-none md:p-14",
           signup ? "h-[220px] pb-6" : "h-[300px] pb-7",
         )}
       >
@@ -108,8 +108,10 @@ export default function AuthLayout({ variant = "login", title, subtitle, childre
         <div className="relative flex max-w-[200px] flex-col gap-[18px] md:w-[340px] md:max-w-none">
           <h2
             className={cn(
-              "font-display leading-[0.95] font-extrabold tracking-[-0.04em] text-cream md:text-[76px]",
+              "font-display font-extrabold tracking-[-0.04em] text-cream",
+              // Size before leading: tailwind-merge drops a leading-* that precedes a text-* size.
               signup ? "text-[40px]" : "text-[46px]",
+              "leading-[0.95] md:text-[76px] md:leading-[0.95]",
             )}
           >
             Plan your life.
@@ -131,8 +133,9 @@ export default function AuthLayout({ variant = "login", title, subtitle, childre
           <div className="flex flex-col gap-2">
             <h1
               className={cn(
-                "font-display font-extrabold tracking-[-0.03em] md:text-[40px]",
+                "font-display font-extrabold tracking-[-0.03em]",
                 signup ? "text-[28px]" : "text-[30px]",
+                "leading-[1.1] md:text-[40px] md:leading-[1.1]",
               )}
             >
               {title}

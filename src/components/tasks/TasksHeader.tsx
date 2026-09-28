@@ -14,7 +14,7 @@ type TasksHeaderProps = {
 export default function TasksHeader({ title, summary, notes, selectedTab, onSelectTab }: TasksHeaderProps) {
   return (
     <>
-      <header className="grid grid-cols-[1fr_auto] items-baseline gap-x-4 gap-y-2">
+      <header className="grid grid-cols-[1fr_auto] items-baseline gap-x-4 gap-y-1.5 md:gap-y-1">
         <p className="col-span-2 text-[13px] font-semibold tracking-[0.08em] text-eyebrow uppercase md:text-sm">
           {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
         </p>

@@ -143,7 +143,7 @@ const SettingsPage: React.FC = () => {
         </section>
 
         <div className="flex flex-col gap-2 pt-1 md:flex-row md:justify-end md:gap-2.5 md:pt-0">
-          <Link to="/" className={cn(buttonVariants({ variant: "secondary" }), "hidden md:inline-flex")}>
+          <Link to="/" className={cn(buttonVariants({ variant: "secondary" }), "hidden h-[46px] md:inline-flex")}>
             Cancel
           </Link>
           <Button type="submit" size="lg" className="w-full md:h-[46px] md:w-auto">
