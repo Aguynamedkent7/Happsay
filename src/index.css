@@ -199,8 +199,8 @@
   height: 100%;
   animation: var(--idle) var(--dur) ease-in-out calc(var(--delay) + 0.8s) infinite;
 }
-.hp-sheet {
-  animation: hp-sheet-in 250ms ease-out both;
+@media (max-width: 899px) {
+  .hp-sheet { animation: hp-sheet-in 250ms ease-out both; }
 }
 .hp-backdrop {
   animation: hp-fade-in 200ms ease-out both;
